@@ -1,0 +1,281 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Yash Desai portfolio: private S3, CloudFront OAC and public HTTPS website.",
+  "Resources": {
+    "SiteBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "yash-desai-portfolio"
+          }
+        ]
+      }
+    },
+    "OriginAccessControl": {
+      "Type": "AWS::CloudFront::OriginAccessControl",
+      "Properties": {
+        "OriginAccessControlConfig": {
+          "Name": {
+            "Fn::Join": [
+              "",
+              [
+                "portfolio-oac-",
+                {
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Fn::Split": [
+                        "/",
+                        {
+                          "Ref": "AWS::StackId"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          "Description": "Signed access to the private portfolio bucket",
+          "OriginAccessControlOriginType": "s3",
+          "SigningBehavior": "always",
+          "SigningProtocol": "sigv4"
+        }
+      }
+    },
+    "SiteCachePolicy": {
+      "Type": "AWS::CloudFront::CachePolicy",
+      "Properties": {
+        "CachePolicyConfig": {
+          "Name": {
+            "Fn::Join": [
+              "",
+              [
+                "portfolio-cache-",
+                {
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Fn::Split": [
+                        "/",
+                        {
+                          "Ref": "AWS::StackId"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          "Comment": "Respect origin caching headers, including no-cache on index.html",
+          "DefaultTTL": 300,
+          "MinTTL": 0,
+          "MaxTTL": 86400,
+          "ParametersInCacheKeyAndForwardedToOrigin": {
+            "EnableAcceptEncodingBrotli": true,
+            "EnableAcceptEncodingGzip": true,
+            "CookiesConfig": {
+              "CookieBehavior": "none"
+            },
+            "HeadersConfig": {
+              "HeaderBehavior": "none"
+            },
+            "QueryStringsConfig": {
+              "QueryStringBehavior": "none"
+            }
+          }
+        }
+      }
+    },
+    "SiteResponseHeaders": {
+      "Type": "AWS::CloudFront::ResponseHeadersPolicy",
+      "Properties": {
+        "ResponseHeadersPolicyConfig": {
+          "Name": {
+            "Fn::Join": [
+              "",
+              [
+                "portfolio-headers-",
+                {
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Fn::Split": [
+                        "/",
+                        {
+                          "Ref": "AWS::StackId"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          "SecurityHeadersConfig": {
+            "ContentTypeOptions": {
+              "Override": true
+            },
+            "FrameOptions": {
+              "FrameOption": "DENY",
+              "Override": true
+            },
+            "ReferrerPolicy": {
+              "ReferrerPolicy": "strict-origin-when-cross-origin",
+              "Override": true
+            },
+            "StrictTransportSecurity": {
+              "AccessControlMaxAgeSec": 31536000,
+              "IncludeSubdomains": false,
+              "Preload": false,
+              "Override": true
+            },
+            "ContentSecurityPolicy": {
+              "ContentSecurityPolicy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; upgrade-insecure-requests",
+              "Override": true
+            }
+          }
+        }
+      }
+    },
+    "SiteDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Enabled": true,
+          "Comment": "Yash Desai software engineering portfolio",
+          "DefaultRootObject": "index.html",
+          "HttpVersion": "http2",
+          "IPV6Enabled": true,
+          "PriceClass": "PriceClass_100",
+          "Origins": [
+            {
+              "Id": "PrivateS3Origin",
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "SiteBucket",
+                  "RegionalDomainName"
+                ]
+              },
+              "OriginAccessControlId": {
+                "Fn::GetAtt": [
+                  "OriginAccessControl",
+                  "Id"
+                ]
+              },
+              "S3OriginConfig": {
+                "OriginAccessIdentity": ""
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "PrivateS3Origin",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "CachedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "Compress": true,
+            "CachePolicyId": {
+              "Ref": "SiteCachePolicy"
+            },
+            "ResponseHeadersPolicyId": {
+              "Ref": "SiteResponseHeaders"
+            }
+          },
+          "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "yash-desai-portfolio"
+          }
+        ]
+      }
+    },
+    "SiteBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "SiteBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowThisDistributionReadOnly",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+              },
+              "Action": "s3:GetObject",
+              "Resource": {
+                "Fn::Sub": "${SiteBucket.Arn}/*"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "AWS:SourceArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${SiteDistribution}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "BucketName": {
+      "Description": "Private bucket for the website files",
+      "Value": {
+        "Ref": "SiteBucket"
+      }
+    },
+    "DistributionId": {
+      "Description": "CloudFront distribution used for deployments and invalidations",
+      "Value": {
+        "Ref": "SiteDistribution"
+      }
+    },
+    "WebsiteUrl": {
+      "Description": "Public HTTPS portfolio URL",
+      "Value": {
+        "Fn::Sub": "https://${SiteDistribution.DomainName}"
+      }
+    }
+  }
+}
