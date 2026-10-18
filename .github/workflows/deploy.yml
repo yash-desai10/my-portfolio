@@ -1,0 +1,40 @@
+name: Deploy Portfolio to AWS
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: portfolio-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+  steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v6.3.0
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ vars.AWS_REGION }}
+
+    - name: Verify Website Files
+      run: |
+        test -f ./site/index.html
+        ls -la ./site/
+
+    - name: Preview S3 Deployment
+      run: |
+        aws s3 sync ./site/ \
+          s3://${{ vars.S3_BUCKET }}/ \
+          --delete \
+          --dryrun
