@@ -37,4 +37,9 @@ jobs:
           aws s3 sync ./site/ \
             s3://${{ vars.S3_BUCKET }}/ \
             --delete \
-            --dryrun
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          aws cloudfront create-invalidation \
+          --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+          --paths "/*"
