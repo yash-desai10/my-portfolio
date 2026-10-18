@@ -3,7 +3,7 @@ name: Test AWS Connection
 on:
   push:
     branches:
-      - main
+      - develop
 
 permissions:
   id-token: write
@@ -14,6 +14,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Inspect GitHub OIDC Claims
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const payload = JSON.parse(
+              Buffer.from(token.split('.')[1], 'base64url').toString()
+            );
+
+            core.info(`Audience (aud): ${payload.aud}`);
+            core.info(`Subject (sub): ${payload.sub}`);
+            core.info(`Issuer (iss): ${payload.iss}`);
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
