@@ -897,3 +897,78 @@ footer {
     color: inherit;
   }
 }
+
+/* GitHub uses the current link color in both light and dark themes. */
+.github-icon {
+  width: 19px;
+  height: 19px;
+  fill: currentColor;
+  vertical-align: -3px;
+  margin-right: 7px;
+}
+
+.github-icon [fill] {
+  fill: currentColor;
+}
+
+/* Individual AWS service icons are embedded in index.html. */
+.aws-exposure-note {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--body);
+  font-size: 14px;
+}
+
+.aws-service-tiles {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.aws-service-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 126px;
+  padding: 16px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: center;
+}
+
+.aws-service-tile .aws-service-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+
+.aws-service-tile>span {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.aws-service-tile>small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media(max-width:600px) {
+  .aws-service-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+@media(max-width:360px) {
+  .aws-service-tiles {
+    grid-template-columns: 1fr;
+  }
+}
